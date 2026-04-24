@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>CyberIdle v12</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="shell">
+
+<!-- ── OVERLAYS ──────────────────────────────────────────────── -->
+<div id="ov-sel" class="ov hidden">
+  <p class="ov-title">⚡ CYBER IDLE</p>
+  <p class="ov-sub">Choisissez votre héros — permanent entre les runs</p>
+  <div class="hcards" id="hcards"></div>
+</div>
+
+<div id="ov-go" class="ov hidden">
+  <div style="font-size:2.5rem;margin-bottom:8px">💀</div>
+  <div class="ov-title" style="color:var(--red)">RUN TERMINÉ</div>
+  <div id="go-inf" style="font-size:.8rem;color:var(--text3);margin-bottom:12px"></div>
+  <table id="go-tbl"></table>
+  <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center">
+    <button class="btn btn-green btn-lg" id="btn-rep" style="max-width:180px">▶ NOUVEAU RUN</button>
+    <button class="btn btn-lg" id="btn-goH" style="max-width:180px">🏠 ACCUEIL</button>
+  </div>
+</div>
+
+<div id="ov-tuto" class="ov hidden" style="z-index:201;align-items:flex-start;justify-content:flex-start;padding-top:10px">
+  <p class="ov-title" style="width:100%;max-width:600px">📖 GUIDE v12</p>
+  <pre style="background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.7rem;color:var(--text2);overflow:auto;white-space:pre;max-width:600px;width:100%;line-height:1.65;margin-bottom:12px;max-height:76vh;font-family:var(--font)">CYBER IDLE v12 — Guide rapide
+
+SLOTS D'ÉQUIPEMENT : Arme · Skin · Implant ×2 · Chaussures
+DPS = (ATQ × VitAtq + FlatDPS) × (1+%DPS) × (1+Crit)
+CRIT : valeur attendue intégrée au DPS (roll individuel en duel)
+ESQUIVE : chance % d'annuler un coup entier (run: par tick)
+PROSPÉRITÉ : index base 100, multiplie les chances de loot
+RELIQUES : min rareté Peu Commun, max 2/item, multi-sélection
+
+COMPÉTENCES → STATS :
+  Force → +5 ATQ/pt  · Dextérité → +2% Crit/pt
+  Endurance → +60 PV · Intelligence → +10% sorts
+  Agilité → +0.05 VitAtq +1% Esquive · Résistance → +35 Bouclier
+  Chance → +3 Prospérité · Perception → +5% crédits/kill
+
+AMÉLIORATIONS : +N% du stat de base du héros par niveau
+INVENTAIRE : drag & drop pour équiper · clic pour détail · filtres
+CRAFT → Amélioration : cliquer + pour ajouter item/relique
+CRAFT → Forge : 10 recettes avec pièces détachées
+BOUTIQUE : Épique & Légendaire · Reroll 30₵</pre>
+  <button class="btn btn-green" onclick="document.getElementById('ov-tuto').classList.add('hidden')" style="max-width:160px">✕ FERMER</button>
+</div>
+
+<!-- ── TOP BAR ───────────────────────────────────────────────── -->
+<div id="top">
+  <h1>⚡ <span>CYBER</span>IDLE</h1>
+  <div class="top-res" id="rc"><span>₵</span><strong>0</strong></div>
+  <div class="top-res" id="rg"><span>💎</span><strong>0</strong></div>
+<button class="tbtn" onclick="document.getElementById('ov-tuto').classList.remove('hidden')" title="Guide">?</button>
+<button class="tbtn" onclick="navigate('options')" title="Options">⚙</button>
+<button class="tbtn" id="btn-rst" title="Réinitialiser">✕</button>
+</div>
+
+<!-- ── MAIN ──────────────────────────────────────────────────── -->
+<div id="main">
+
+  <!-- RUN -->
+  <div id="pg-home" class="pg active">
+    <!-- Hub d'accueil -->
+    <div id="hub-mode" class="hidden">
+      <!-- affiché quand aucune partie active -->
+      <div class="hub-shortcuts">
+        <button class="btn hub-shortcut-btn" id="hub-missions-btn" onclick="navigate('missions')" style="position:relative">🎯 Missions<span class="nb-badge hidden" id="mission-notif-dot" style="top:4px;right:4px"></span></button>
+        <button class="btn hub-shortcut-btn" onclick="navigate('bout')">🛒 Boutique</button>
+      </div>
+      <div class="hub-center">
+        <div class="hub-title">CYBER IDLE</div>
+        <div class="hub-subtitle">Que voulez-vous faire ?</div>
+        <button class="btn btn-lg hub-main-btn" id="hub-btn-run" onclick="openHubModal('run')">▶ LANCER UN RUN</button>
+        <button class="btn btn-lg hub-main-btn" onclick="navigate('hexbattle')">⬡ LANCER UN HEX</button>
+        <button class="btn btn-lg hub-main-btn" id="hub-btn-duel" onclick="openHubModal('duel')">▶ LANCER UN DUEL</button>
+      </div>
+    </div>
+    <!-- Run actif — rendu dynamique -->
+    <div id="home-root"></div>
+    <!-- Modal choix difficulté -->
+    <div id="hub-modal" class="hub-modal-overlay hidden">
+      <div class="hub-modal-box">
+        <div class="hub-modal-title" id="hub-modal-title"></div>
+        <div id="hub-modal-choices"></div>
+        <button class="btn btn-sm" onclick="closeHubModal()" style="margin-top:10px;color:var(--text4)">✕ Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DUEL -->
+  <div id="pg-duel" class="pg">
+    <div class="sec-hdr">⚔ DUEL — L'adversaire devient plus fort à chaque victoire</div>
+    <div id="duel-inner" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+      <div id="duel-sel" class="duel-sel">
+        <div class="opp-cards" id="opp-cards"></div>
+      </div>
+      <div id="duel-fight" style="display:none">
+        <div class="df-hdr">
+          <span id="df-turn-badge" class="turn-badge turn-p">TOUR</span>
+          <span id="df-turn-n" style="font-size:.7rem;color:var(--text4)"></span>
+          <button class="btn btn-green btn-sm" id="btn-endturn" style="margin-left:auto">Fin de tour ▶</button>
+          <button class="btn btn-sm" id="btn-duel-quit" style="margin-left:6px;color:var(--text4)">Abandon</button>
+        </div>
+        <div class="df-arena">
+          <div class="df-col">
+            <div class="combatant">
+              <div class="comb-name" id="dop-name"></div>
+              <div class="hp-line"><span id="dop-hp"></span></div>
+              <div class="bar-wrap" style="height:9px"><div class="bar-fill bar-en" id="dop-bar-hp" style="width:100%"></div></div>
+              <div class="hp-line" style="margin-top:4px"><span id="dop-sh"></span></div>
+              <div class="bar-wrap"><div class="bar-fill bar-sh" id="dop-bar-sh" style="width:100%"></div></div>
+              <div class="comb-stats" id="dop-stats"></div>
+              <div class="comb-eff" id="dop-eff"></div>
+            </div>
+            <div class="dl" id="duel-log"></div>
+          </div>
+          <div class="df-col">
+            <div class="combatant">
+              <div class="comb-name" id="dme-name"></div>
+              <div class="hp-line"><span id="dme-hp"></span></div>
+              <div class="bar-wrap" style="height:9px"><div class="bar-fill bar-hp" id="dme-bar-hp" style="width:100%"></div></div>
+              <div class="hp-line" style="margin-top:4px"><span id="dme-sh"></span></div>
+              <div class="bar-wrap"><div class="bar-fill bar-sh" id="dme-bar-sh" style="width:100%"></div></div>
+              <div class="comb-stats" id="dme-stats"></div>
+              <div class="comb-eff" id="dme-eff"></div>
+            </div>
+            <div style="margin-top:4px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <span style="font-size:.7rem;color:var(--text3)">Énergie :</span>
+                <div class="en-pips" id="energy-pips"></div>
+                <span id="energy-txt" style="font-size:.7rem;color:var(--rar-r)"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="duel-acts" id="duel-act-btns"></div>
+      </div>
+      <div id="duel-result" style="display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:20px;text-align:center">
+        <div id="dr-title" style="margin-bottom:12px"></div>
+        <div id="dr-rewards" style="font-size:.84rem;color:var(--text2);margin-bottom:16px"></div>
+        <button class="btn btn-green btn-lg" id="btn-duel-again" style="max-width:200px">⚔ NOUVEAU DUEL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HÉROS -->
+  <div id="pg-hero" class="pg"><div id="hr-c"></div></div>
+
+  <!-- AMÉLIORATIONS -->
+  <div id="pg-upg" class="pg" style="position:relative">
+    <div class="sec-hdr">LAB — +1% stat de base du héros par niveau</div>
+    <div class="upg-grid" id="upg-grid"></div>
+    <div id="lab-popup" class="popup-overlay hidden">
+      <div class="popup-box">
+        <div class="popup-title" id="lab-popup-title"></div>
+        <div id="lab-popup-body"></div>
+        <button class="btn btn-sm btn-red" onclick="document.getElementById('lab-popup').classList.add('hidden')" style="margin-top:8px">✕ Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTAIRE -->
+  <div id="pg-inv" class="pg">
+    <div class="inv-hdr">
+      <!-- Layout Diablo 3 : slots gauche | portrait héros | slots droite -->
+      <div class="d3-equip" id="d3-equip">
+        <!-- rempli par renderInv() -->
+      </div>
+      <div class="sp-slots-row" id="sp-slots-row"></div>
+    </div>
+    <div class="inv-filters" id="inv-filters"></div>
+    <div id="sell-all-row" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:4px 12px 0;min-height:20px"></div>
+    <div class="inv-grid-scroll">
+      <div class="inv-grid" id="inv-grid"></div>
+    </div>
+    <!-- Barre de vente flottante (mode sélection) -->
+    <div class="inv-sel-bar hidden" id="inv-sel-bar">
+      <span id="sel-count" style="font-size:.8rem;font-weight:700;color:var(--text)"></span>
+      <span style="font-size:.75rem;color:var(--text3)">sélectionné(s)</span>
+      <span style="font-size:.8rem;font-weight:700;color:var(--gold);margin-left:auto" id="sel-total"></span>
+      <button class="btn btn-green btn-sm" onclick="sellSelected()">Vendre ▶</button>
+      <button class="btn btn-sm" onclick="clearInvSel()" style="color:var(--text4)">✕</button>
+    </div>
+    <!-- Item detail overlay -->
+    <div id="item-detail" class="hidden" style="position:absolute;inset:0;z-index:40;background:rgba(2,4,12,.88)">
+      <div class="item-detail-card">
+        <div id="item-detail-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRAFT -->
+  <div id="pg-craft" class="pg">
+    <div class="craft-tabs">
+      <button class="craft-tab active" data-tab="enhance" onclick="CRAFT_TAB='enhance';renderCraft()">⚗ AMÉLIORATION RELIQUES</button>
+      <button class="craft-tab" data-tab="forge" onclick="CRAFT_TAB='forge';renderCraft()">🔨 FORGE</button>
+    </div>
+    <!-- Enhance -->
+    <div id="craft-enhance" class="craft-lab">
+      <div id="ce-item-slot"></div>
+      <div style="font-size:.74rem;font-weight:700;color:var(--text3);margin:8px 0 5px">RELIQUES (max 2 par item)</div>
+      <div id="ce-rel-slot"></div>
+      <div id="enhance-preview" style="font-size:.78rem;color:var(--green);margin:8px 0 5px;min-height:18px"></div>
+      <button class="btn btn-green" id="btn-enhance" disabled onclick="doEnhance()">⚗ Fusionner</button>
+      <div id="ce-log" style="font-size:.74rem;color:var(--green);margin-top:8px;min-height:18px"></div>
+    </div>
+    <!-- Forge -->
+    <div id="craft-recipes" class="craft-lab hidden">
+      <div id="recipes-list"></div>
+    </div>
+    <!-- Popup sélection item -->
+    <div id="craft-popup" class="popup-overlay hidden">
+      <div class="popup-box">
+        <div class="popup-title">Choisir un équipement</div>
+        <div id="popup-list"></div>
+        <button class="btn btn-sm btn-red" onclick="closePopup()" style="margin-top:4px">✕ Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOUTIQUE -->
+  <div id="pg-bout" class="pg">
+    <div class="shop-hdr">
+      <span style="font-family:var(--font-h);font-size:.85rem;font-weight:700;letter-spacing:.06em">BOUTIQUE</span>
+      <span style="font-size:.72rem;color:var(--text3);margin-right:auto">Épique &amp; Légendaire</span>
+      <button class="btn btn-sm btn-orange" id="btn-reroll">🔄 Reroll (30₵)</button>
+    </div>
+    <div class="shop-filters" id="shop-filters"></div>
+    <div class="shop-body" id="shop-body"></div>
+  </div>
+  <!-- MISSIONS -->
+  <div id="pg-missions" class="pg">
+    <div class="sec-hdr">🎯 MISSIONS</div>
+    <div style="padding:8px 14px 0;display:flex;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="restartMissions()">↻ Regénérer</button>
+    </div>
+    <div id="missions-list" style="padding:12px;display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+  <!-- OPTIONS -->
+  <div id="pg-options" class="pg">
+  <div class="sec-hdr">⚙ OPTIONS</div>
+  <div class="opts-wrapper">
+
+    <div class="opts-section">
+      <div class="opts-section-label">Audio</div>
+      <div class="opts-group">
+        <div class="opt-row">
+          <div class="opt-row-icon">🎵</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title">Musique</div>
+            <div class="opt-row-sub">Volume de la bande-son</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <input type="range" class="vol-slider" min="0" max="100" value="60"
+              oninput="this.nextElementSibling.textContent=this.value+'%'"/>
+            <span class="vol-val">60%</span>
+            <label class="toggle-sw">
+              <input type="checkbox" checked/><div class="toggle-track"></div>
+            </label>
+          </div>
+        </div>
+        <div class="opt-row">
+          <div class="opt-row-icon">🔊</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title">Effets sonores</div>
+            <div class="opt-row-sub">Sons de combat et UI</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <input type="range" class="vol-slider" min="0" max="100" value="80"
+              oninput="this.nextElementSibling.textContent=this.value+'%'"/>
+            <span class="vol-val">80%</span>
+            <label class="toggle-sw">
+              <input type="checkbox" checked/><div class="toggle-track"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opts-section">
+      <div class="opts-section-label">Affichage</div>
+      <div class="opts-group">
+        <div class="opt-row">
+          <div class="opt-row-icon">🖥</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title">Qualité graphique</div>
+            <div class="opt-row-sub">Effets visuels &amp; particules</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <div class="chip-picker" id="cp-graphics">
+              <button class="cpick" onclick="selectChip(this,'cp-graphics')">Bas</button>
+              <button class="cpick active" onclick="selectChip(this,'cp-graphics')">Moyen</button>
+              <button class="cpick" onclick="selectChip(this,'cp-graphics')">Élevé</button>
+            </div>
+          </div>
+        </div>
+        <div class="opt-row">
+          <div class="opt-row-icon">⚡</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title">FPS cible</div>
+            <div class="opt-row-sub">Images par seconde</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <div class="chip-picker" id="cp-fps">
+              <button class="cpick active" onclick="selectChip(this,'cp-fps')">30</button>
+              <button class="cpick" onclick="selectChip(this,'cp-fps')">60</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opts-section">
+      <div class="opts-section-label">Gameplay</div>
+      <div class="opts-group">
+        <div class="opt-row">
+          <div class="opt-row-icon">🌐</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title">Langue</div>
+            <div class="opt-row-sub">Interface &amp; textes</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <div class="chip-picker" id="cp-lang">
+              <button class="cpick active" onclick="selectChip(this,'cp-lang')">FR</button>
+              <button class="cpick" onclick="selectChip(this,'cp-lang')">EN</button>
+            </div>
+          </div>
+        </div>
+        <div class="opt-row">
+          <div class="opt-row-icon">✏️</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title">Pseudo</div>
+            <div class="opt-row-sub">Nom affiché en jeu</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <input class="opt-name-inp" id="opt-pseudo" type="text" maxlength="20"
+              placeholder="Nom du héros…"
+              onchange="META.hero&&(META.hero.name=this.value.trim()||null,saveMeta())"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opts-section">
+      <div class="opts-section-label">Compte</div>
+      <div class="opts-group">
+        <div class="opt-row">
+          <div class="opt-row-icon">👤</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title">Connexion</div>
+            <div class="opt-row-sub">Sauvegarde cloud — bientôt disponible</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <button class="btn btn-sm btn-cyan" disabled>Créer</button>
+            <button class="btn btn-sm" disabled>Connexion</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opts-section">
+      <div class="opts-section-label">Données</div>
+      <div class="opts-group opts-danger">
+        <div class="opt-row">
+          <div class="opt-row-icon" style="background:rgba(255,51,85,0.08);border-color:rgba(255,51,85,0.15)">⚠️</div>
+          <div class="opt-row-info">
+            <div class="opt-row-title" style="color:var(--red)">Réinitialiser</div>
+            <div class="opt-row-sub">Effacer toute la progression</div>
+          </div>
+          <div class="opt-row-ctrl">
+            <button class="btn btn-sm btn-red" onclick="document.getElementById('btn-rst').click()">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /opts-section -->
+  </div><!-- /opts-wrapper -->
+</div><!-- /pg-options -->
+
+<div id="pg-hexbattle" class="pg" style="position:relative">
+  <div id="hb-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0">
+    <div id="hb-sel"></div>
+    <div id="hb-active" style="display:none;flex-direction:column;flex:1;min-height:0">
+      <div id="hb-hud"></div>
+      <div id="hb-canvas-wrap" style="flex:1;min-height:0;overflow:hidden;touch-action:none">
+        <canvas id="hb-canvas" style="display:block"></canvas>
+  <div id="hb-tooltip" style="display:none;position:absolute;z-index:25;background:rgba(6,8,15,.92);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;pointer-events:none;max-width:155px;font-family:Rajdhani,sans-serif;backdrop-filter:blur(3px)"></div>
+      </div>
+  <!-- Panel info ennemi superposé -->
+      <div id="hb-info-panel" style="display:none;position:absolute;bottom:60px;right:10px;z-index:20;background:rgba(6,8,15,.92);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;max-width:200px;backdrop-filter:blur(4px)"></div>
+            <div id="hb-log" style="height:52px;overflow-y:auto;padding:3px 10px;background:var(--bg);border-top:1px solid var(--border);flex-shrink:0"></div>
+<div id="hb-actions" style="display:flex;gap:5px;align-items:center;padding:6px 8px;background:var(--bg1);border-top:1px solid var(--border);overflow-x:auto;flex-shrink:0"></div>
+    </div>
+    <div id="hb-result" style="display:none;flex:1;flex-direction:column"></div>
+  </div>
+</div>
+</div><!-- /#main -->
+
+<!-- ── BOTTOM NAV ─────────────────────────────────────────────── -->
+<div id="bot">
+ <button class="nb active nb-run" data-pg="home"><span class="nb-icon">▶</span><span class="nb-badge hidden" id="run-notif-dot"></span>Run</button>
+<button class="nb" data-pg="hexbattle"><span class="nb-icon">⬡</span>Hex</button>
+  <button class="nb nb-hero" data-pg="hero"><span class="nb-icon">🧬</span><span class="nb-badge hidden" id="hero-notif-dot"></span>Héros</button>
+  <button class="nb" data-pg="upg"><span class="nb-icon">🧪</span>Lab</button>
+  <button class="nb" data-pg="inv"><span class="nb-icon">🎒</span>Inventaire</button>
+  <button class="nb" data-pg="craft"><span class="nb-icon">🔨</span>Craft</button>
+</div>
+
+</div><!-- /#shell -->
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="ui.js"></script>
+<script src="main.js"></script>
+<script src="hexBattle.js"></script>
+</body>
+</html>
